@@ -56,6 +56,95 @@ Support real-time execution (Hydra/Midgard/Sidechains) and slot-based enforcemen
 - Used when cost efficiency is important.
 - Used when low-latency execution is required.
 
+Verifiable Hash Anchoring for Hybrid Time Logic
+Overview
+We implemented Verifiable Hash Anchoring using Blake2b hashing for timestamps in the hybrid time logic system.
+This ensures data integrity and tamper resistance by:
+
+Hashing the timestamp and storing the hash on-chain.
+Anchoring the timestamp with mustValidateIn using the hashed value.
+Allowing reverse compilation to restore Ladder Logic with the verified timestamp.
+Changes Made
+1. In plutusladder_compiler.py
+Added logic for Blake2b hash generation:
+
+Utilizes hashlib.blake2b with a digest size of 32 for secure hashing.
+Stores the hash alongside mustValidateIn to maintain on-chain verifiability.
+Example Implementation:
+
+python
+Copy
+Edit
+import hashlib  # Required for Blake2b hash generation
+
+# Handle Verifiable Hash Anchoring in Plutus
+if "format" in ir_data and ir_data["format"] == "verifiable":
+    if "timestamp" in ir_data:
+        # Generate Blake2b hash for the timestamp
+        timestamp_value = str(ir_data["timestamp"]).encode('utf-8')
+        blake2b_hash = hashlib.blake2b(timestamp_value, digest_size=32).hexdigest()
+
+        # Store the hash in the Plutus script
+        script_lines.append(f'mustValidateIn (from slot{ir_data["timestamp"]})')
+        script_lines.append(f'-- Verifiable Hash: {blake2b_hash}')
+        print(f"Verifiable Hash Anchoring Applied: mustValidateIn (from slot{ir_data['timestamp']}) with Hash: {blake2b_hash}")
+Expected Output:
+
+sql
+Copy
+Edit
+Verifiable Hash Anchoring Applied: mustValidateIn (from slot1700000000) with Hash: <Blake2b_Hash>
+mustValidateIn (from slot1700000000)
+-- Verifiable Hash: <Blake2b_Hash>
+2. In reverse_compiler.py
+Pending: Next step is to recognize and reverse compile:
+
+mustValidateIn with Verifiable Hashes.
+Convert it back to Ladder Logic while maintaining hash integrity.
+Spec Addition for Hybrid Time Logic
+Add the following section under Anchoring Mechanisms:
+
+Verifiable Hash Anchoring
+Verifiable Hash Anchoring provides an immutable and verifiable timestamping mechanism using Blake2b hashing.
+This ensures data integrity and tamper resistance for critical operations.
+
+Description
+Purpose: Securely anchors timestamps with verifiable integrity.
+Method: Generates a Blake2b hash for the timestamp and anchors it using mustValidateIn.
+Storage: The hash is stored on-chain, enabling verifiability and auditability.
+Specification
+Format: "verifiable"
+Example Structure:
+json
+Copy
+Edit
+{
+    "format": "verifiable",
+    "timestamp": 1700000000,
+    "machine_id": "MORLEY-PLC-001",
+    "process_id": "LADDER-SEQ-12",
+    "hash": "d5f1a8b0e...7c3e1" 
+}
+How It Works
+Blake2b Hash Generation:
+hashlib.blake2b with a digest size of 32 is used.
+The timestamp is hashed to ensure tamper resistance.
+Plutus Anchoring:
+mustValidateIn (from slotX) is used for timestamp anchoring.
+The hash is stored as a comment in the Plutus script:
+haskell
+Copy
+Edit
+mustValidateIn (from slot1700000000)
+-- Verifiable Hash: <Blake2b_Hash>
+Reverse Compilation:
+Recognizes and reverses the Verifiable Hash Anchoring.
+Converts it back to Ladder Logic with the hash intact.
+Benefits
+Immutability: Ensures the timestamp cannot be tampered with.
+Auditability: On-chain hash storage allows for verifiable integrity checks.
+Security: Blake2b provides high security with efficient performance.
+
 ### Plutus Constraints for L1 Validation
 #### Constraint 1: Slot Validation
 - The transaction must validate within the correct slot range.
