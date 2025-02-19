@@ -50,3 +50,9 @@ Planned specifications for additional components will be added as needed to supp
 
 For more information about the Morley ecosystem, visit [morleylang.org](https://morleylang.org/).
 
+## License
+The content in this repository is licensed under the [Creative Commons Attribution 4.0 International (CC-BY-4.0)](LICENSE).  
+This means you are free to use, share, and adapt the specifications, provided proper attribution is given.  
+For details, see the full license [here](https://creativecommons.org/licenses/by/4.0/legalcode).
+
+
