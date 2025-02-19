@@ -1,4 +1,3 @@
-
 # Morley Time Logic Specification
 
 ## Goal
@@ -86,6 +85,20 @@ if "format" in ir_data and ir_data["format"] == "verifiable":
         print(f"Verifiable Hash Anchoring Applied: mustValidateIn (from slot{ir_data['timestamp']}) with Hash: {blake2b_hash}")
 ```
 
+#### In `reverse_compiler.py`
+```python
+# Detect and Handle Verifiable Hash Anchoring
+if "Verifiable Hash" in plutus_code:
+    hash_match = re.search(r'-- Verifiable Hash: (\w+)', plutus_code)
+    if hash_match:
+        hash_value = hash_match.group(1)
+        # Preserve Verifiable Hash as a comment in Ladder Logic
+        if f"// Verifiable Hash: {hash_value}" not in ladder_logic_lines:  # Check to avoid duplicates
+            ladder_logic_lines.append(f"// Verifiable Hash: {hash_value}")
+            print(f"Reverse Compiled Verifiable Hash: {hash_value}")
+```
+- The Verifiable Hash is preserved as a comment in Ladder Logic to maintain integrity.
+
 ### Specification
 - **Format:** `"verifiable"`
 - **Example Structure:**  
@@ -98,68 +111,22 @@ if "format" in ir_data and ir_data["format"] == "verifiable":
         "hash": "d5f1a8b0e...7c3e1" 
     }
     ```
-- **How It Works:**
-  - Blake2b Hash Generation ensures tamper resistance.
-  - Plutus Anchoring uses `mustValidateIn` for timestamp anchoring.
-  - Reverse Compilation maintains hash integrity while converting back to Ladder Logic.
-
----
-
-## Plutus Constraints for L1 Validation
-- **Constraint 1:** Slot Validation using `mustValidateIn` to ensure correct slot range.
-- **Constraint 2:** Timestamp Consistency Check using `traceIfFalse`.
-- **Constraint 3:** Hash Verification (If Verifiable Mode is Used).
-
----
-
-## Compiler (Ladder Logic → Plutus)
-### Features:
-- Converts Ladder Logic Timers into Plutus Constraints.
-- Supports Hydra/Midgard execution without L1 slot constraints.
-- Encodes timestamps into datums when storing state on-chain.
-
-### Example Transformation:
-Ladder Logic Input:
-```
-TON Timer1, 5000ms
-MOV state = state + 1
-```
-Compiled to Plutus:
-```haskell
-mustValidateIn (from slotX)
-recordedTime `member` validTimeRange
-```
-
----
-
-## Reverse Compiler (Plutus → Ladder Logic)
-### Features:
-- Extracts time logic from Plutus scripts & converts back to Ladder Logic.
-- Interprets datums storing timestamps & state data.
-- Recognizes real-time Hydra execution & adjusts output accordingly.
 
 ### Example Transformation:
 Plutus Input:
 ```haskell
-mustValidateIn (from slotX)
+mustValidateIn (from slot1700000000)
+-- Verifiable Hash: cc5f0d2ea144196379c332b7ce6553b26e6eef381fb3d1e9095533b49a915a4d
 ```
 Reverse Compiled into Ladder Logic:
 ```
-TON Timer1, 5000ms
-```
-Plutus Datum Input:
-```json
-{"timestamp": 1700000000}
-```
-Reverse Compiled into Ladder Logic:
-```
-MOV timestamp = 1700000000
+TON TimerX, 1700000000ms
+// Verifiable Hash: cc5f0d2ea144196379c332b7ce6553b26e6eef381fb3d1e9095533b49a915a4d
 ```
 
 ---
 
 ## Development Priorities
-- Extend the Morley Compiler to handle Plutus time constraints.
-- Extend the Morley Reverse Compiler to extract and interpret timestamps.
-- Define a standard format for encoding timestamps in datums for real-time execution.
-- Build the anchoring mechanism to connect Hydra/Midgard time logic to L1 slot constraints.
+- Implement Verifiable Hash Anchoring. (Done)
+- Implement Reverse Compilation for Verifiable Hash Anchoring. (Done)
+
